@@ -21,6 +21,7 @@ public class PlayerAnimator : MonoBehaviour
        // animator.SetFloat("verticalVelocity", rb.linearVelocity.y);
         animator.SetBool("isOnLadder", controller.isOnLadder);
         animator.SetBool("isClimbing", controller.isClimbing);
+        animator.SetBool("isTurning", controller.isTurning);
 
         HandleClimbAnimation();
     }
@@ -52,5 +53,11 @@ public class PlayerAnimator : MonoBehaviour
     {
         animator.SetTrigger("abilityActivate");
         animator.SetInteger("currentAbility", (int)ability);
+    }
+
+    // Player_Turn 클립의 Animation Event에서 호출
+    public void OnTurnFlipFrame()
+    {
+        controller.OnTurnFlipFrame();
     }
 }

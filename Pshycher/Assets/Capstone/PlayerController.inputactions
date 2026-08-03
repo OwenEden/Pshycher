@@ -34,9 +34,27 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "New action",
+                    "name": "Abillity",
                     "type": "Button",
                     "id": "82fba2d0-5d6f-4158-81c2-1230a75b1319",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Tool",
+                    "type": "Button",
+                    "id": "a02625cd-955e-447a-9836-817766013d5c",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Dash",
+                    "type": "Button",
+                    "id": "4c915697-4a7c-4280-99ff-3514acb15453",
                     "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
@@ -58,7 +76,7 @@
                 {
                     "name": "up",
                     "id": "3815a1e1-fbf6-400a-8a22-68ae7730ac7f",
-                    "path": "<Keyboard>/upArrow",
+                    "path": "<Keyboard>/w",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
@@ -69,7 +87,7 @@
                 {
                     "name": "down",
                     "id": "77a7f4e4-a986-4855-8ca7-faa9472eb010",
-                    "path": "<Keyboard>/downArrow",
+                    "path": "<Keyboard>/s",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
@@ -80,7 +98,7 @@
                 {
                     "name": "left",
                     "id": "bb5c1cba-aa13-4a9f-aae4-69dbfc8da14a",
-                    "path": "<Keyboard>/leftArrow",
+                    "path": "<Keyboard>/a",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
@@ -91,7 +109,7 @@
                 {
                     "name": "right",
                     "id": "ad445c35-e96f-4fb6-826f-8e6098388c52",
-                    "path": "<Keyboard>/rightArrow",
+                    "path": "<Keyboard>/d",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
@@ -113,7 +131,7 @@
                 {
                     "name": "",
                     "id": "cf7b2bca-a7ec-42bd-bd7a-fb9be9b129b8",
-                    "path": "<Keyboard>/a",
+                    "path": "<Mouse>/leftButton",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
@@ -124,11 +142,33 @@
                 {
                     "name": "",
                     "id": "ce83fa6b-f584-4372-9058-3d010a343f62",
-                    "path": "",
+                    "path": "<Keyboard>/q",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "New action",
+                    "action": "Abillity",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "bc166ce7-cc0b-433b-bbe2-b1249dc5d1a5",
+                    "path": "<Keyboard>/e",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Tool",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "e62ebd88-446e-451b-8886-9efb01da1a86",
+                    "path": "<Keyboard>/leftShift",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Dash",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

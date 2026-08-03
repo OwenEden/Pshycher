@@ -25,16 +25,16 @@ public class PlayerUIManager : MonoBehaviour
 
     private void Update()
     {
-        if(Input.GetKeyDown(KeyCode.P))//데미지 테스트용
+       /* if(Input.GetKeyDown(KeyCode.P))//데미지 테스트용
         {
             player.OnDamage(10f);
-        }
+        }*/
     }
 
     public void OnMove(InputAction.CallbackContext context)
     {
         MoveInput = context.ReadValue<Vector2>();
-        Debug.Log($"Move Input: {MoveInput}");
+        //Debug.Log($"Move Input: {MoveInput}");
     }
 
     public void OnJump(InputAction.CallbackContext context)

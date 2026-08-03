@@ -32,8 +32,8 @@ public class WheelUI : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, ID
 
     void Awake()
     {
-        toolManager = FindFirstObjectByType<ToolManager>();
-        abilityManager = FindFirstObjectByType<AbilityManager>();
+        toolManager = FindAnyObjectByType<ToolManager>();
+        abilityManager = FindAnyObjectByType<AbilityManager>();
         CloseWheel();
     }
 

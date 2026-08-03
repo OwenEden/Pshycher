@@ -23,8 +23,8 @@ public class UIButtonInput : MonoBehaviour, IPointerDownHandler, IPointerUpHandl
     {
         if (buttonType == ButtonType.Attack)
         {
-            toolManager = FindFirstObjectByType<ToolManager>();
-            protect = FindFirstObjectByType<Protect>();
+            toolManager = FindAnyObjectByType<ToolManager>();
+            protect = FindAnyObjectByType<Protect>();
         }
     }
 
