@@ -123,28 +123,6 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: "\uC6B0\uCE21 \uB2EC\uB9AC\uAE30 \uBC84\uC2A4\uD130 \uC804\uAC1C1_0"
-      rect:
-        serializedVersion: 2
-        x: 1276
-        y: 1480
-        width: 12
-        height: 22
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: bb2dbd31c93f371478a636fa9fff0d46
-      internalID: -1927864071
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
       name: "\uC6B0\uCE21 \uB2EC\uB9AC\uAE30 \uBC84\uC2A4\uD130 \uC804\uAC1C1_1"
       rect:
         serializedVersion: 2
@@ -152,8 +130,8 @@ TextureImporter:
         y: 204
         width: 887
         height: 1035
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -162,28 +140,6 @@ TextureImporter:
       bones: []
       spriteID: 7f8427fc474c1fb43abf19aea5354294
       internalID: 591773514
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: "\uC6B0\uCE21 \uB2EC\uB9AC\uAE30 \uBC84\uC2A4\uD130 \uC804\uAC1C1_2"
-      rect:
-        serializedVersion: 2
-        x: 2260
-        y: 1070
-        width: 22
-        height: 36
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: c6783dab7c6ae0543882ad80375c9fa7
-      internalID: -2073478081
       vertices: []
       indices: 
       edges: []
@@ -207,6 +163,7 @@ TextureImporter:
       "\uC6B0\uCE21 \uB2EC\uB9AC\uAE30 \uBC84\uC2A4\uD130 \uC804\uAC1C1_0": -1927864071
       "\uC6B0\uCE21 \uB2EC\uB9AC\uAE30 \uBC84\uC2A4\uD130 \uC804\uAC1C1_1": 591773514
       "\uC6B0\uCE21 \uB2EC\uB9AC\uAE30 \uBC84\uC2A4\uD130 \uC804\uAC1C1_2": -2073478081
+      "\uC6B0\uCE21 \uB2EC\uB9AC\uAE30 \uBC84\uC2A4\uD130 \uC804\uAC1C1_3": 1471114480
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

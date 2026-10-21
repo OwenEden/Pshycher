@@ -7,7 +7,7 @@ AnimationClip:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Player_Blade_Attack
-  serializedVersion: 7
+  serializedVersion: 8
   m_Legacy: 0
   m_Compressed: 0
   m_UseHighQualityCurve: 1
@@ -26,12 +26,6 @@ AnimationClip:
       value: {fileID: 3840127066374447477, guid: c62e459d026d50746ad8f77b3bf452cf, type: 3}
     - time: 0.23333333
       value: {fileID: -8657366233375050594, guid: d920d55163f31744fbf5ec8f257dcd16, type: 3}
-    - time: 0.35
-      value: {fileID: -7923389452177508327, guid: c03f27eb559f0be419814d14c2532a79, type: 3}
-    - time: 0.46666667
-      value: {fileID: -7648894723615600723, guid: 6eac6a515aab3ab42a55f73d8d70ad0e, type: 3}
-    - time: 0.5833333
-      value: {fileID: 2041129665428608137, guid: 45a5b0de009cac74fb5b547b2b0e904b, type: 3}
     attribute: m_Sprite
     path: 
     classID: 212
@@ -53,19 +47,17 @@ AnimationClip:
       isPPtrCurve: 1
       isIntCurve: 0
       isSerializeReferenceCurve: 0
+      metaData: 0
     pptrCurveMapping:
     - {fileID: -2003167072539779862, guid: 293567182aa4e8842b03e2e05945974f, type: 3}
     - {fileID: 3840127066374447477, guid: c62e459d026d50746ad8f77b3bf452cf, type: 3}
     - {fileID: -8657366233375050594, guid: d920d55163f31744fbf5ec8f257dcd16, type: 3}
-    - {fileID: -7923389452177508327, guid: c03f27eb559f0be419814d14c2532a79, type: 3}
-    - {fileID: -7648894723615600723, guid: 6eac6a515aab3ab42a55f73d8d70ad0e, type: 3}
-    - {fileID: 2041129665428608137, guid: 45a5b0de009cac74fb5b547b2b0e904b, type: 3}
   m_AnimationClipSettings:
     serializedVersion: 2
     m_AdditiveReferencePoseClip: {fileID: 0}
     m_AdditiveReferencePoseTime: 0
     m_StartTime: 0
-    m_StopTime: 0.59999996
+    m_StopTime: 0.25
     m_OrientationOffsetY: 0
     m_Level: 0
     m_CycleOffset: 0
@@ -84,4 +76,11 @@ AnimationClip:
   m_EulerEditorCurves: []
   m_HasGenericRootTransform: 0
   m_HasMotionFloatCurves: 0
-  m_Events: []
+  m_Events:
+  - time: 0.11666667
+    functionName: OnBladeHitFrame
+    data: 
+    objectReferenceParameter: {fileID: 0}
+    floatParameter: 0
+    intParameter: 0
+    messageOptions: 0

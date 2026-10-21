@@ -16,7 +16,6 @@ public class Rope : MonoBehaviour
     [Header("비주얼")]
     public LineRenderer lineRenderer;
 
-    private float cooldownTimer = 0f;
     private bool isRopeOut = false;
     private Vector2 ropeEndPoint;
     private GameObject anchoredObject;
@@ -34,9 +33,6 @@ public class Rope : MonoBehaviour
 
     void Update()
     {
-        if (cooldownTimer > 0f)
-            cooldownTimer -= Time.deltaTime;
-
         if (isRopeOut && lineRenderer != null)
         {
             lineRenderer.SetPosition(0, transform.position);
@@ -46,16 +42,14 @@ public class Rope : MonoBehaviour
 
     public void Attack(bool enhanced)
     {
-        float cooldown = baseCooldown * toolManager.GetCooldownMultiplier();
-        if (cooldownTimer > 0f) return;
-
-        cooldownTimer = cooldown;
+        if (toolManager.IsOnCooldown(ToolType.Rope)) return;
+        toolManager.StartCooldown(ToolType.Rope, baseCooldown);
 
         float length = maxLength * (enhanced ? enhancedLengthMultiplier : 1f);
         float damage = stat.attack * (enhanced ? enhancedDamageMultiplier : 1f);
 
         Vector2 direction = stat.transform.localScale.x > 0 ? Vector2.right : Vector2.left;
-        Vector2 origin = (Vector2)stat.transform.position;
+        Vector2 origin = stat.CenterPosition;
 
         // 레이캐스트로 전방 오브젝트 감지
         RaycastHit2D hit = Physics2D.Raycast(origin, direction, length, targetLayer | ropeAnchorLayer);

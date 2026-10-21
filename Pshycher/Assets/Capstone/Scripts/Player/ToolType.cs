@@ -18,6 +18,5 @@ public enum AbilityType
     FlameCharge,      // 화염돌진
     AquaStep,         // 수륙발판
     GroundShock,      // 지면진동
-    AirSlash,         // 공기참격
-    GravityShift      // 자가 중력변환 (미구현)
+    AirSlash          // 공기참격
 }

@@ -10,11 +10,25 @@ public class ResultManager : MonoBehaviour
     public GameObject resultPanel;
     public RectTransform resultWindowText;
     public RectTransform resultInfo;
+    public TMP_Text windowTitleText;      // Clear / GameOver
 
-    [Header("결과 텍스트 (ResultInfo 자식)")]
+    [Header("문구")]
+    public string clearLabel = "Clear!";
+    public string gameOverLabel = "End...?";
+
+    [Header("클리어 전용 요소")]
+    public GameObject clearOnlyGroup;     // 타임·수집요소 표시 묶음
     public TMP_Text clearTimeText;
     public TMP_Text bestTimeText;
     public TMP_Text collectibleText;
+
+    [Header("버튼")]
+    public GameObject backButton;
+    public GameObject retryButton;
+    public GameObject nextButton;         // 클리어 시에만
+
+    [Header("플레이어 조작 UI")]
+    public GameObject playerControlUI;    // 조작 버튼 묶음
 
     [Header("애니메이션 설정")]
     public float scaleUpDuration = 0.5f;
@@ -28,6 +42,7 @@ public class ResultManager : MonoBehaviour
     public Ease slideInEase = Ease.OutCubic;
 
     private Vector2 infoOriginalPos;
+    public bool isShowing { get; private set; }
 
     private void Awake()
     {
@@ -41,9 +56,50 @@ public class ResultManager : MonoBehaviour
         infoOriginalPos = resultInfo.anchoredPosition;
     }
 
+    // ── 클리어 ────────────────────────────────
     public void ShowResult(StageClearResult result)
     {
+        if (windowTitleText != null)
+            windowTitleText.text = clearLabel;
+
+        if (clearOnlyGroup != null) clearOnlyGroup.SetActive(true);
+        if (nextButton != null) nextButton.SetActive(true);
+        if (retryButton != null) retryButton.SetActive(true);
+        if (backButton != null) backButton.SetActive(true);
+
         ApplyResultTexts(result);
+        PlaySequence();
+    }
+
+    // ── 게임 오버 ─────────────────────────────
+    public void ShowGameOver()
+    {
+        if (windowTitleText != null)
+            windowTitleText.text = gameOverLabel;
+
+        // 기록 관련 요소 숨김
+        if (clearOnlyGroup != null) clearOnlyGroup.SetActive(false);
+        if (nextButton != null) nextButton.SetActive(false);
+
+        if (retryButton != null) retryButton.SetActive(true);
+        if (backButton != null) backButton.SetActive(true);
+
+        PlaySequence();
+    }
+
+    // ── 공통 연출 ─────────────────────────────
+    private void PlaySequence()
+    {
+        // Pause 중이었다면 해제
+        if (PauseManager.Instance != null && PauseManager.Instance.isPaused)
+            PauseManager.Instance.Resume();
+
+        isShowing = true;
+
+        StageTimer.Instance?.StopTimer();
+
+        if (playerControlUI != null)
+            playerControlUI.SetActive(false);
 
         resultPanel.SetActive(true);
 
@@ -52,7 +108,9 @@ public class ResultManager : MonoBehaviour
         resultInfo.anchoredPosition = infoOriginalPos - new Vector2(0f, slideInOffset);
         resultInfo.gameObject.SetActive(false);
 
-        Sequence seq = DOTween.Sequence();
+        Time.timeScale = 0f;   // 즉시 정지
+
+        Sequence seq = DOTween.Sequence().SetUpdate(true);   // timeScale 무시하고 재생
 
         seq.Append(resultWindowText
             .DOScale(Vector3.one, scaleUpDuration)
@@ -84,5 +142,28 @@ public class ResultManager : MonoBehaviour
 
         if (collectibleText != null)
             collectibleText.text = $"{result.collectedCount} / {result.totalCollectibles}";
+    }
+
+    // ── 버튼 ──────────────────────────────────
+    public void OnRetryPressed()
+    {
+        Time.timeScale = 1f;
+        isShowing = false;
+
+        string scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+        ScreenFader.Instance.LoadSceneWithFade(scene);
+    }
+
+    public void OnBackPressed()
+    {
+        Time.timeScale = 1f;
+        isShowing = false;
+
+        ScreenFader.Instance.LoadSceneWithFade("Main Lobby");
+    }
+
+    private void OnDestroy()
+    {
+        Time.timeScale = 1f;   // 씬 전환 시 복구 보장
     }
 }

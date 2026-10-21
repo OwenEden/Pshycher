@@ -20,6 +20,18 @@ public class TitleManager : MonoBehaviour
     [Header("슬롯 (씬에 배치된 3개 연결)")]
     public SlotUI[] slotUIs;
 
+    [Header("슬롯 가득 참 안내 UI")]
+    public GameObject slotFullPanel;
+    public Button slotFullYesButton;
+    public Button slotFullNoButton;
+
+    [Header("덮어쓰기 확인 UI")]
+    public GameObject overwritePanel;
+    public Button overwriteYesButton;
+    public Button overwriteNoButton;
+
+    private int pendingOverwriteSlot = -1;
+
     [Header("씬 이름")]
     public string lobbySceneName = "Main Lobby";
 
@@ -36,6 +48,22 @@ public class TitleManager : MonoBehaviour
 
         if (loadSlotBackButton != null)
             loadSlotBackButton.onClick.AddListener(HideLoadSlot);
+
+        if (slotFullPanel != null) slotFullPanel.SetActive(false);
+
+        if (slotFullYesButton != null)
+            slotFullYesButton.onClick.AddListener(OnSlotFullYes);
+
+        if (slotFullNoButton != null)
+            slotFullNoButton.onClick.AddListener(OnSlotFullNo);
+
+        if (overwritePanel != null) overwritePanel.SetActive(false);
+
+        if (overwriteYesButton != null)
+            overwriteYesButton.onClick.AddListener(OnOverwriteYes);
+
+        if (overwriteNoButton != null)
+            overwriteNoButton.onClick.AddListener(OnOverwriteNo);
     }
 
     private void Start()
@@ -60,8 +88,22 @@ public class TitleManager : MonoBehaviour
     // ── 타이틀 버튼 ───────────────────────────
     public void StartButton()
     {
+        int emptySlot = FindEmptySlot();
+
+        if (emptySlot >= 0)
+        {
+            // 빈 슬롯에 바로 새 게임 생성
+            SaveManager.Instance.NewGame(emptySlot);
+            ScreenFader.Instance.LoadSceneWithFade(lobbySceneName);
+            return;
+        }
+
+        // 전부 차 있으면 안내
         isNewGameMode = true;
-        OpenSlotUI();
+        if (slotFullPanel != null)
+            slotFullPanel.SetActive(true);
+        else
+            Debug.LogWarning("슬롯이 가득 찼지만 안내 UI가 연결되지 않았습니다.");
     }
 
     public void LoadButton()
@@ -100,6 +142,7 @@ public class TitleManager : MonoBehaviour
 
     public void HideLoadSlot()
     {
+        isNewGameMode = false;
         loadSlotUI.SetActive(false);
         titleUIButtons.SetActive(true);
     }
@@ -130,11 +173,15 @@ public class TitleManager : MonoBehaviour
     {
         if (slotExists)
         {
-            // 불러오기 모드에서 기존 슬롯 → 이어하기
-            // 새 게임 모드에서 기존 슬롯 → 덮어쓰기 확인이 필요할 수 있음
             if (isNewGameMode)
             {
-                Debug.Log($"슬롯 {slotIndex}에 이미 데이터가 있습니다. (덮어쓰기 확인 UI 필요)");
+                // 덮어쓰기 확인
+                pendingOverwriteSlot = slotIndex;
+
+                if (overwritePanel != null)
+                    overwritePanel.SetActive(true);
+                else
+                    Debug.LogWarning("덮어쓰기 확인 UI가 연결되지 않았습니다.");
                 return;
             }
 
@@ -154,6 +201,7 @@ public class TitleManager : MonoBehaviour
         ScreenFader.Instance.LoadSceneWithFade(lobbySceneName);
     }
 
+
     // SlotUI에서 호출
     public void OnSlotDeleteRequested(int slotIndex)
     {
@@ -163,7 +211,46 @@ public class TitleManager : MonoBehaviour
         RefreshLoadButton();
         Debug.Log($"슬롯 {slotIndex} 삭제 완료");
     }
+    private int FindEmptySlot()
+    {
+        for (int i = 0; i < SaveManager.SlotCount; i++)
+            if (!SaveManager.SlotExists(i)) return i;
+        return -1;
+    }
 
+    // 안내 UI - 슬롯 삭제하러 가기
+    private void OnSlotFullYes()
+    {
+        if (slotFullPanel != null) slotFullPanel.SetActive(false);
+        OpenSlotUI();
+    }
+
+    private void OnSlotFullNo()
+    {
+        if (slotFullPanel != null) slotFullPanel.SetActive(false);
+        isNewGameMode = false;
+    }
+
+    // 안내 UI - 덮어쓰기 확인
+    private void OnOverwriteYes()
+    {
+        if (pendingOverwriteSlot < 0) return;
+
+        if (overwritePanel != null) overwritePanel.SetActive(false);
+
+        // 기존 데이터를 지우고 새 게임 생성
+        SaveManager.Instance.DeleteSlot(pendingOverwriteSlot);
+        SaveManager.Instance.NewGame(pendingOverwriteSlot);
+
+        pendingOverwriteSlot = -1;
+        ScreenFader.Instance.LoadSceneWithFade(lobbySceneName);
+    }
+
+    private void OnOverwriteNo()
+    {
+        pendingOverwriteSlot = -1;
+        if (overwritePanel != null) overwritePanel.SetActive(false);
+    }
     // ── 설정 ──────────────────────────────────
     public void LoadCurrentSettings()
     {

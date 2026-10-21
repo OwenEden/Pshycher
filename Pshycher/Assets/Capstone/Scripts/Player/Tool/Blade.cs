@@ -2,70 +2,159 @@ using UnityEngine;
 
 public class Blade : MonoBehaviour
 {
-    [Header("기본 설정")]
-    public float attackRange = 1.5f;
-    public float baseCooldown = 0.5f;
-    public LayerMask targetLayer;
+    [Header("콤보 설정")]
+    public int maxCombo = 3;
+    public float comboResetTime = 1.2f;     // 이 시간 지나면 1단부터 다시
+    public float comboInputDelay = 0.25f;   // 다음 입력을 받기까지 최소 간격
+
+    [Header("단계별 공격 범위")]
+    public float[] attackRanges = { 1.5f, 1.6f, 2.2f };
+
+    [Header("단계별 데미지 배율")]
+    public float[] damageMultipliers = { 1f, 1.1f, 1.6f };
 
     [Header("강화 설정")]
     public float enhancedRangeMultiplier = 1.3f;
     public float enhancedDamageMultiplier = 1.5f;
 
-    private float cooldownTimer = 0f;
+    [Header("공통")]
+    public LayerMask targetLayer;
+
+    public int currentCombo { get; private set; } = 0;   // 0 = 대기, 1~3 = 진행 중
+
+    private float comboTimer;      // 콤보 유지 시간
+    private float inputLockTimer;  // 연타 방지
+    private int airAttackLanding = -1;   // 공중 공격을 쓴 체공의 번호
+
     private PlayerStat stat;
+    private PlayerController controller;
     private ToolManager toolManager;
+    private PlayerAnimator playerAnimator;
+
+    // 이번 타격에 적용할 값 (Animation Event 시점에 사용)
+    private int pendingStep;
+    private bool pendingEnhanced;
 
     void Awake()
     {
         stat = GetComponentInParent<PlayerStat>();
+        controller = GetComponentInParent<PlayerController>();
         toolManager = GetComponentInParent<ToolManager>();
+        playerAnimator = GetComponentInParent<PlayerAnimator>();
     }
 
     void Update()
     {
-        if (cooldownTimer > 0f)
-            cooldownTimer -= Time.deltaTime;
+        if (inputLockTimer > 0f)
+            inputLockTimer -= Time.deltaTime;
+
+        // 콤보 유지 시간 경과 시 초기화
+        if (currentCombo > 0)
+        {
+            comboTimer -= Time.deltaTime;
+            if (comboTimer <= 0f)
+                ResetCombo();
+        }
+    }
+
+    private void OnDisable()
+    {
+        ResetCombo();   // 도구 교체 시 콤보 초기화
     }
 
     public void Attack(bool enhanced)
     {
-        float cooldown = baseCooldown * toolManager.GetCooldownMultiplier();
-        if (cooldownTimer > 0f) return;
+        if (inputLockTimer > 0f) return;
 
-        cooldownTimer = cooldown;
+        bool airborne = controller != null
+            && !controller.isGrounded
+            && !controller.isOnLadder
+            && !controller.isSwimming;
 
-        float range = attackRange * (enhanced ? enhancedRangeMultiplier : 1f);
-        float damage = stat.attack * (enhanced ? enhancedDamageMultiplier : 1f);
+        // 이번 체공에 이미 공중 공격을 썼으면 무시
+        if (airborne && controller.landingCount == airAttackLanding) return;
 
-        // 플레이어 전방 방향
+        int step;
+
+        if (enhanced || airborne)
+        {
+            step = maxCombo;
+        }
+        else
+        {
+            step = currentCombo + 1;
+            if (step > maxCombo) step = 1;
+        }
+
+        currentCombo = step;
+        comboTimer = comboResetTime;
+        inputLockTimer = comboInputDelay * toolManager.GetCooldownMultiplier();
+
+        pendingStep = step;
+        pendingEnhanced = enhanced;
+
+        if (airborne)
+        {
+            airAttackLanding = controller.landingCount;
+            playerAnimator?.PlayBladeAirAttack();
+        }
+        else
+        {
+            playerAnimator?.PlayBladeCombo(step);
+        }
+    }
+
+    // Animation Event에서 호출 (PlayerAnimator 경유)
+    public void OnBladeHitFrame()
+    {
+        int index = Mathf.Clamp(pendingStep - 1, 0, attackRanges.Length - 1);
+
+        float range = attackRanges[index];
+        float damage = stat.attack * damageMultipliers[index];
+
+        if (pendingEnhanced)
+        {
+            range *= enhancedRangeMultiplier;
+            damage *= enhancedDamageMultiplier;
+        }
+
         Vector2 direction = stat.transform.localScale.x > 0 ? Vector2.right : Vector2.left;
-        Vector2 origin = (Vector2)stat.transform.position;
+        Vector2 origin = stat.CenterPosition;
+        Vector2 center = origin + direction * (range * 0.5f);
 
-        // 전방 부채꼴 범위 내 타겟 감지
-        Collider2D[] hits = Physics2D.OverlapCircleAll(origin + direction * (range / 2f), range / 2f, targetLayer);
+        Collider2D[] hits = Physics2D.OverlapCircleAll(center, range * 0.5f, targetLayer);
 
         foreach (var hit in hits)
         {
             LivingEntity entity = hit.GetComponent<LivingEntity>();
             entity?.OnDamage(damage);
-            Debug.Log($"블레이드 공격 - 대상: {hit.name} / 데미지: {damage} / 강화: {enhanced}");
+            Debug.Log($"블레이드 {pendingStep}단 적중 - {hit.name} / 데미지 {damage:F1}");
         }
-
-        // 강화 상태 추가 효과
-        if (enhanced)
-            SpawnEnhancedEffect(origin, direction, range);
     }
 
-    private void SpawnEnhancedEffect(Vector2 origin, Vector2 direction, float range)
+    // 마지막 단계 모션이 끝났을 때 호출 (선택)
+    public void OnComboEnd()
     {
-        // 강화 이펙트 (파티클 등) 추가 가능
-        Debug.Log("블레이드 강화 이펙트 재생");
+        if (pendingStep >= maxCombo)
+            ResetCombo();
+    }
+
+    private void ResetCombo()
+    {
+        currentCombo = 0;
+        comboTimer = 0f;
+        playerAnimator?.ResetBladeCombo();
     }
 
     private void OnDrawGizmosSelected()
     {
+        if (attackRanges == null || attackRanges.Length == 0) return;
+
         Gizmos.color = Color.red;
-        Vector2 dir = Vector2.right;
-        Gizmos.DrawWireSphere((Vector2)transform.position + dir * (attackRange / 2f), attackRange / 2f);
+        for (int i = 0; i < attackRanges.Length; i++)
+        {
+            float r = attackRanges[i];
+            Gizmos.DrawWireSphere((Vector2)transform.position + Vector2.right * (r * 0.5f), r * 0.5f);
+        }
     }
 }

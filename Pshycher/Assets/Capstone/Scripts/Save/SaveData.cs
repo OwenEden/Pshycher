@@ -12,10 +12,13 @@ public class SaveData
     public List<ToolType> unlockedTools = new List<ToolType>();
     public List<AbilityType> unlockedAbilities = new List<AbilityType>();
 
-    // 체크포인트 이어하기용 예약 필드 (현재 미사용)
-    public string checkpointStageId = "";
-    public float checkpointX = 0f;
-    public float checkpointY = 0f;
+    [Header("체크포인트")]
+    public CheckpointData checkpoint = new CheckpointData();
+
+    public void ClearCheckpoint()
+    {
+        checkpoint = new CheckpointData();
+    }
 
     // ── 스테이지 기록 ──────────────────────────
     public StageRecord GetRecord(string stageId)
@@ -80,6 +83,19 @@ public class SaveData
             return utc.ToLocalTime();
         return DateTime.MinValue;
     }
+
+    // ── 마지막 해금된 도구/능력 ──────────────────────────
+    public ToolType GetLastUnlockedTool()
+    {
+        if (unlockedTools.Count == 0) return ToolType.None;
+        return unlockedTools[unlockedTools.Count - 1];
+    }
+
+    public AbilityType GetLastUnlockedAbility()
+    {
+        if (unlockedAbilities.Count == 0) return AbilityType.None;
+        return unlockedAbilities[unlockedAbilities.Count - 1];
+    }
 }
 
 [Serializable]
@@ -97,6 +113,22 @@ public class StageRecord
     public List<string> collectedIds = new List<string>();
 
     public bool HasCollected(string id) => collectedIds.Contains(id);
+}
+
+[Serializable]
+public class CheckpointData
+{
+    public string stageId = "";
+    public string sceneName = "";
+    public string checkpointId = "";
+    public float x, y;
+    public bool faceRight = true;
+    public float elapsedTime = 0f;
+
+    // 이번 판에서 먹은 수집요소 (클리어 전이라 기록 확정 전)
+    public List<string> collectedIds = new List<string>();
+
+    public bool isValid => !string.IsNullOrEmpty(stageId);
 }
 
 // Title Scene 슬롯 목록 표시용

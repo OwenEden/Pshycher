@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 public class Buster : MonoBehaviour
@@ -6,54 +7,65 @@ public class Buster : MonoBehaviour
     public GameObject projectilePrefab;
     public Transform firePoint;
     public float baseCooldown = 0.4f;
+    [Tooltip("버튼을 누르고 실제로 발사되기까지의 시간 (지면진동 시 배율 적용)")]
+    public float startupDelay = 0.15f;
 
     [Header("강화 설정")]
     public float enhancedDamageMultiplier = 1.5f;
     public float enhancedSpeedMultiplier = 1.4f;
-    public int enhancedPierceCount = 2; // 강화 시 관통 횟수
+    public int enhancedPierceCount = 2;
 
-    private float cooldownTimer = 0f;
+    public bool isWindingUp { get; private set; }
+
     private PlayerStat stat;
     private ToolManager toolManager;
+    private PlayerAnimator playerAnimator;
 
     void Awake()
     {
         stat = GetComponentInParent<PlayerStat>();
         toolManager = GetComponentInParent<ToolManager>();
+        playerAnimator = GetComponentInParent<PlayerAnimator>();
     }
 
-    void Update()
+    void OnDisable()
     {
-        if (cooldownTimer > 0f)
-            cooldownTimer -= Time.deltaTime;
+        // 선딜 중 도구를 바꾸면 코루틴이 멈추므로 상태를 풀어줌
+        isWindingUp = false;
     }
 
     public void Attack(bool enhanced)
     {
-        float castTime = toolManager.GetCastTimeMultiplier();
-        float cooldown = baseCooldown * toolManager.GetCooldownMultiplier();
-
-        if (cooldownTimer > 0f) return;
+        if (isWindingUp) return;
+        if (toolManager.IsOnCooldown(ToolType.Buster)) return;
         if (projectilePrefab == null || firePoint == null) return;
 
-        cooldownTimer = cooldown;
+        toolManager.StartCooldown(ToolType.Buster, baseCooldown);
 
-        // 시전시간이 있는 경우 코루틴으로 처리
-        if (castTime > 1f)
-            StartCoroutine(FireWithDelay(enhanced, (castTime - 1f) * 0.3f));
+        float delay = startupDelay * toolManager.GetCastTimeMultiplier();
+
+        // 누르는 순간엔 겨눈 자세만 (반동은 발사 순간)
+        playerAnimator?.OnBusterAim(delay);
+
+        if (delay > 0f)
+            StartCoroutine(FireAfter(enhanced, delay));
         else
             Fire(enhanced);
     }
 
-    private System.Collections.IEnumerator FireWithDelay(bool enhanced, float delay)
+    private IEnumerator FireAfter(bool enhanced, float delay)
     {
-        Debug.Log($"버스터 시전 중... ({delay:F2}초)");
+        isWindingUp = true;
         yield return new WaitForSeconds(delay);
+        isWindingUp = false;
+
+        if (stat.dead) yield break;
         Fire(enhanced);
     }
 
     private void Fire(bool enhanced)
     {
+        // 발사 순간 바라보는 방향으로 나감
         Vector2 direction = stat.transform.localScale.x > 0 ? Vector2.right : Vector2.left;
 
         GameObject obj = Instantiate(projectilePrefab, firePoint.position, Quaternion.identity);
@@ -65,9 +77,9 @@ public class Buster : MonoBehaviour
             int pierce = enhanced ? enhancedPierceCount : 0;
             float speedMult = enhanced ? enhancedSpeedMultiplier : 1f;
 
-            projectile.Init(direction, damage, pierce, speedMult, targetLayer: null);
+            projectile.Init(direction, damage, pierce, speedMult, null);
         }
 
-        Debug.Log($"버스터 발사 - 방향: {direction} / 강화: {enhanced}");
+        playerAnimator?.OnBusterFired();
     }
 }

@@ -4,109 +4,107 @@ using UnityEngine;
 public class MissionSelectUIAnimation : MenuBase
 {
     [Header("Elements")]
-    public RectTransform titleText;       // 위 → 중심
-    public RectTransform ExperimentPanel;   // 좌 → 중심
-    public RectTransform WeaponPanel;   // 좌 → 중심
-    public RectTransform BackButton;   // 좌 → 중심
-    public GameObject background;        // 배경 (애니메이션 없음)
+    public RectTransform titleText;        // 위 → 중심
+    public RectTransform categoryButtons;  // 위 → 중심
+    public RectTransform BackButton;       // 좌 → 중심
+    public RectTransform scrollArea;       // 페이드
 
     [Header("Animation Settings")]
     public float duration = 0.5f;
-    public float offset = 300f;
+    public float stagger = 0.05f;
+    [Tooltip("화면 밖으로 나간 뒤 추가로 더 떨어뜨릴 여유 거리")]
+    public float margin = 20f;
 
     private Vector2 titleOrigin;
-    private Vector2 ExperimentOrigin;
-    private Vector2 WeaponOrigin;
+    private Vector2 categoryOrigin;
     private Vector2 backButtonOrigin;
+    private CanvasGroup scrollGroup;
 
-    private object tweenId = new object();
+    // 등장 시 계산한 화면 밖 거리 - 퇴장 때 재사용
+    private Vector2 titleOff;
+    private Vector2 categoryOff;
+    private Vector2 backOff;
+
+    private readonly object tweenId = new object();
 
     private void Awake()
     {
         titleOrigin = titleText != null ? titleText.anchoredPosition : Vector2.zero;
-        ExperimentOrigin = ExperimentPanel != null ? ExperimentPanel.anchoredPosition : Vector2.zero;
-        WeaponOrigin = WeaponPanel != null ? WeaponPanel.anchoredPosition : Vector2.zero;
+        categoryOrigin = categoryButtons != null ? categoryButtons.anchoredPosition : Vector2.zero;
         backButtonOrigin = BackButton != null ? BackButton.anchoredPosition : Vector2.zero;
+
+        if (scrollArea != null)
+        {
+            scrollGroup = scrollArea.GetComponent<CanvasGroup>();
+            if (scrollGroup == null)
+                scrollGroup = scrollArea.gameObject.AddComponent<CanvasGroup>();
+        }
     }
 
     public override Tween EnterAnimation()
     {
-        // 이전에 같은 ID로 생성된 트윈 제거
         DOTween.Kill(tweenId);
 
-        // 초기 위치 설정
-        if (titleText != null) titleText.anchoredPosition = titleOrigin + new Vector2(0, offset);
-        if (ExperimentPanel != null) ExperimentPanel.anchoredPosition = ExperimentOrigin + new Vector2(-offset, 0);
-        if (WeaponPanel != null) WeaponPanel.anchoredPosition = WeaponOrigin + new Vector2(-offset, 0);
-        if (BackButton != null) BackButton.anchoredPosition = backButtonOrigin + new Vector2(offset, 0);
+        // 원위치에 놓고 화면 밖 거리 계산 (기기 해상도에 맞춰 매번 계산)
+        ResetToOrigin();
+        titleOff = Offscreen(titleText, Vector2.up);
+        categoryOff = Offscreen(categoryButtons, Vector2.up);
+        backOff = Offscreen(BackButton, Vector2.left);
 
-        // 시퀀스 구성 (중첩 대신 Insert로 오프셋 적용하여 원래 지연 방식 재현)
+        // 시작 위치
+        if (titleText != null) titleText.anchoredPosition = titleOrigin + titleOff;
+        if (categoryButtons != null) categoryButtons.anchoredPosition = categoryOrigin + categoryOff;
+        if (BackButton != null) BackButton.anchoredPosition = backButtonOrigin + backOff;
+        if (scrollGroup != null) scrollGroup.alpha = 0f;
+
         var seq = DOTween.Sequence().SetId(tweenId);
 
-        // Title 시작
         if (titleText != null)
-            seq.Append(titleText.DOAnchorPos(titleOrigin, duration).SetEase(Ease.OutCubic));
-        else
-            seq.AppendInterval(duration);
+            seq.Insert(0f, titleText.DOAnchorPos(titleOrigin, duration).SetEase(Ease.OutCubic));
 
-        // Experiment는 시퀀스 시작 후 0.05초에 시작
-        if (ExperimentPanel != null)
-            seq.Insert(0.05f, ExperimentPanel.DOAnchorPos(ExperimentOrigin, duration).SetEase(Ease.OutCubic));
+        if (categoryButtons != null)
+            seq.Insert(stagger, categoryButtons.DOAnchorPos(categoryOrigin, duration).SetEase(Ease.OutCubic));
 
-        // Weapon은 시퀀스 시작 후 0.05초에 시작
-        if (WeaponPanel != null)
-            seq.Insert(0.05f, WeaponPanel.DOAnchorPos(WeaponOrigin, duration).SetEase(Ease.OutCubic));
-
-        // BackButton은 시퀀스 시작 후 0.15초에 시작
         if (BackButton != null)
-            seq.Insert(0.15f, BackButton.DOAnchorPos(backButtonOrigin, duration).SetEase(Ease.OutCubic));
+            seq.Insert(stagger * 2f, BackButton.DOAnchorPos(backButtonOrigin, duration).SetEase(Ease.OutCubic));
+
+        if (scrollGroup != null)
+            seq.Insert(stagger * 2f, scrollGroup.DOFade(1f, duration).SetEase(Ease.OutCubic));
 
         return seq;
     }
 
     public override Tween ExitAnimation()
     {
-        // 이전에 같은 ID로 생성된 트윈 제거
         DOTween.Kill(tweenId);
 
         float exitDur = duration * 0.8f;
-
-        // 동시에 나가는 애니메이션을 시퀀스에 병렬로 추가
         var seq = DOTween.Sequence().SetId(tweenId);
-        bool anyAdded = false;
 
         if (titleText != null)
-        {
-            seq.Append(titleText.DOAnchorPos(titleOrigin + new Vector2(0, offset), exitDur).SetEase(Ease.InCubic));
-            anyAdded = true;
-        }
+            seq.Insert(0f, titleText.DOAnchorPos(titleOrigin + titleOff, exitDur).SetEase(Ease.InCubic));
 
-        if (ExperimentPanel != null)
-        {
-            if (!anyAdded)
-                seq.Append(ExperimentPanel.DOAnchorPos(ExperimentOrigin + new Vector2(-offset, 0), exitDur).SetEase(Ease.InCubic));
-            else
-                seq.Join(ExperimentPanel.DOAnchorPos(ExperimentOrigin + new Vector2(-offset, 0), exitDur).SetEase(Ease.InCubic));
-            anyAdded = true;
-        }
-
-        if (WeaponPanel != null)
-        {
-            if (!anyAdded)
-                seq.Append(WeaponPanel.DOAnchorPos(WeaponOrigin + new Vector2(-offset, 0), exitDur).SetEase(Ease.InCubic));
-            else
-                seq.Join(WeaponPanel.DOAnchorPos(WeaponOrigin + new Vector2(-offset, 0), exitDur).SetEase(Ease.InCubic));
-            anyAdded = true;
-        }
+        if (categoryButtons != null)
+            seq.Insert(0f, categoryButtons.DOAnchorPos(categoryOrigin + categoryOff, exitDur).SetEase(Ease.InCubic));
 
         if (BackButton != null)
-        {
-            if (!anyAdded)
-                seq.Append(BackButton.DOAnchorPos(backButtonOrigin + new Vector2(-offset, 0), exitDur).SetEase(Ease.InCubic));
-            else
-                seq.Join(BackButton.DOAnchorPos(backButtonOrigin + new Vector2(-offset, 0), exitDur).SetEase(Ease.InCubic));
-        }
+            seq.Insert(0f, BackButton.DOAnchorPos(backButtonOrigin + backOff, exitDur).SetEase(Ease.InCubic));
+
+        if (scrollGroup != null)
+            seq.Insert(0f, scrollGroup.DOFade(0f, exitDur).SetEase(Ease.InCubic));
 
         return seq;
+    }
+
+    private void ResetToOrigin()
+    {
+        if (titleText != null) titleText.anchoredPosition = titleOrigin;
+        if (categoryButtons != null) categoryButtons.anchoredPosition = categoryOrigin;
+        if (BackButton != null) BackButton.anchoredPosition = backButtonOrigin;
+    }
+
+    private Vector2 Offscreen(RectTransform rt, Vector2 dir)
+    {
+        return rt != null ? UIOffscreenUtil.GetOffscreenOffset(rt, dir, margin) : Vector2.zero;
     }
 }

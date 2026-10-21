@@ -112,4 +112,18 @@ public class ScreenFader : MonoBehaviour
         canvasGroup.alpha = target;
         onComplete?.Invoke();
     }
+    // 코루틴에서 yield return으로 대기 가능
+    public IEnumerator FadeOutRoutine(float duration = -1f)
+    {
+        if (duration < 0f) duration = defaultDuration;
+        canvasGroup.blocksRaycasts = true;
+        yield return FadeRoutine(1f, duration, null);
+    }
+
+    public IEnumerator FadeInRoutine(float duration = -1f)
+    {
+        if (duration < 0f) duration = defaultDuration;
+        yield return FadeRoutine(0f, duration, null);
+        canvasGroup.blocksRaycasts = false;
+    }
 }

@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0c36b2752c0ef44408c22283913f2cb3, type: 3}
+  m_Name: Main_1
+  m_EditorClassIdentifier: Assembly-CSharp::RecordData
+  category: {fileID: 11400000, guid: 1a12219d46460484ea92f0666b54dad9, type: 2}
+  order: 0
+  listLabel: "\uC815\uADDC1"
+  title: "\uC815\uADDC \uC784\uBB34 - 1"
+  body: 
+  unlockType: 0
+  stage: {fileID: 0}
+  collectibleId: 

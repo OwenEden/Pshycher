@@ -3,10 +3,6 @@ using System.Collections.Generic;
 
 public class LadderTrigger : MonoBehaviour
 {
-    [Header("상/하 버튼 UI")]
-    public GameObject upButton;
-    public GameObject downButton;
-
     [Header("레이어 설정")]
     public string playerLayerName = "Player";
     public string ladderTopLayerName = "LadderTop";
@@ -134,7 +130,6 @@ public class LadderTrigger : MonoBehaviour
 
     public void SetButtonsActive(bool active)
     {
-        if (upButton != null) upButton.SetActive(active);
-        if (downButton != null) downButton.SetActive(active);
+        PlayerUIManager.Instance?.RequestVerticalButtons(this, active);
     }
 }

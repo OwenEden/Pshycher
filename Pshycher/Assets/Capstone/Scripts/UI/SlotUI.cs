@@ -9,12 +9,21 @@ public class SlotUI : MonoBehaviour
 
     [Header("UI 참조")]
     public Button slotButton;
-    public TMP_Text progressText;      // "1-4" 또는 "새 게임"
-    public TMP_Text lastSavedText;     // "2026-08-02 14:30"
-    public TMP_Text toolCountText;     // "도구 3/5"
-    public TMP_Text abilityCountText;  // "능력 2/9"
-    public GameObject emptyMark;       // 빈 슬롯 표시용 오브젝트
-    public Button deleteButton;        // 선택
+    public TMP_Text progressText;      // 임무 진행
+    public TMP_Text lastSavedText;
+    public TMP_Text toolCountText;     // 도구 상태
+    public TMP_Text abilityCountText;  // 능력 상태
+    public GameObject emptyMark;
+    public Button deleteButton;
+
+    [Header("문구 형식")]
+    public string missionFormat = "임무 : {0} 완료";
+    public string abilityFormat = "능력 : {0} 획득";
+    public string toolFormat = "도구 : {0} 활성";
+
+    [Header("미해금 문구")]
+    public string noAbilityLabel = "능력 : 미획득";
+    public string noToolLabel = "도구 : 미획득";
 
     private TitleManager titleManager;
     private bool slotExists;
@@ -59,17 +68,37 @@ public class SlotUI : MonoBehaviour
         }
 
         if (progressText != null)
-            progressText.text = summary.mainProgress;
+        {
+            progressText.text = summary.mainProgress == "-"
+                ? "임무 : 시작 전"
+                : string.Format(missionFormat, summary.mainProgress);
+        }
 
         if (lastSavedText != null)
             lastSavedText.text = summary.lastSaved.ToString("yyyy-MM-dd HH:mm");
 
-        // GravityShift 포함 9종, None 제외
+        // 마지막으로 해금한 도구 / 능력
+        ToolType lastTool = summary.unlockedTools.Count > 0
+            ? summary.unlockedTools[summary.unlockedTools.Count - 1]
+            : ToolType.None;
+
+        AbilityType lastAbility = summary.unlockedAbilities.Count > 0
+            ? summary.unlockedAbilities[summary.unlockedAbilities.Count - 1]
+            : AbilityType.None;
+
         if (toolCountText != null)
-            toolCountText.text = $"도구 {summary.unlockedTools.Count}/5";
+        {
+            toolCountText.text = lastTool == ToolType.None
+                ? noToolLabel
+                : string.Format(toolFormat, GameNames.GetToolName(lastTool));
+        }
 
         if (abilityCountText != null)
-            abilityCountText.text = $"능력 {summary.unlockedAbilities.Count}/9";
+        {
+            abilityCountText.text = lastAbility == AbilityType.None
+                ? noAbilityLabel
+                : string.Format(abilityFormat, GameNames.GetAbilityName(lastAbility));
+        }
     }
 
     private void OnSlotClicked()

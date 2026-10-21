@@ -59,6 +59,15 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
+                },
+                {
+                    "name": "Pause",
+                    "type": "Button",
+                    "id": "4e27fb3f-e2eb-4c09-9f63-6f6a6e65903c",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -76,7 +85,7 @@
                 {
                     "name": "up",
                     "id": "3815a1e1-fbf6-400a-8a22-68ae7730ac7f",
-                    "path": "<Keyboard>/w",
+                    "path": "<Keyboard>/upArrow",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
@@ -87,7 +96,7 @@
                 {
                     "name": "down",
                     "id": "77a7f4e4-a986-4855-8ca7-faa9472eb010",
-                    "path": "<Keyboard>/s",
+                    "path": "<Keyboard>/downArrow",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
@@ -98,7 +107,7 @@
                 {
                     "name": "left",
                     "id": "bb5c1cba-aa13-4a9f-aae4-69dbfc8da14a",
-                    "path": "<Keyboard>/a",
+                    "path": "<Keyboard>/leftArrow",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
@@ -109,7 +118,7 @@
                 {
                     "name": "right",
                     "id": "ad445c35-e96f-4fb6-826f-8e6098388c52",
-                    "path": "<Keyboard>/d",
+                    "path": "<Keyboard>/rightArrow",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
@@ -131,7 +140,7 @@
                 {
                     "name": "",
                     "id": "cf7b2bca-a7ec-42bd-bd7a-fb9be9b129b8",
-                    "path": "<Mouse>/leftButton",
+                    "path": "<Keyboard>/a",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
@@ -153,7 +162,7 @@
                 {
                     "name": "",
                     "id": "bc166ce7-cc0b-433b-bbe2-b1249dc5d1a5",
-                    "path": "<Keyboard>/e",
+                    "path": "<Keyboard>/w",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
@@ -164,11 +173,22 @@
                 {
                     "name": "",
                     "id": "e62ebd88-446e-451b-8886-9efb01da1a86",
-                    "path": "<Keyboard>/leftShift",
+                    "path": "<Keyboard>/d",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
                     "action": "Dash",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "4bfacdaa-f954-436f-ac11-6aa4afeb5ea3",
+                    "path": "<Keyboard>/escape",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Pause",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

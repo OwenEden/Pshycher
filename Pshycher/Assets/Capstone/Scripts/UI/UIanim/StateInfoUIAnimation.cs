@@ -1,92 +1,116 @@
-using DG.Tweening;
+ï»¿using DG.Tweening;
 using UnityEngine;
 
 public class StateInfoUIAnimation : MenuBase
 {
     [Header("Elements")]
-    public RectTransform titleText;       // À§ ¡æ Áß½É
-    public RectTransform AbilityPanel;
-    public RectTransform CharacterPanel;
-    public RectTransform ToolPanel;
-    public RectTransform WeaponPanel;
-    public RectTransform BackButton;   // ÁÂ ¡æ Áß½É
-    public GameObject background;        // ¹è°æ (¾Ö´Ï¸ŞÀÌ¼Ç ¾øÀ½)
+    public RectTransform titleText;        // ìœ„ â†’ ì¤‘ì‹¬
+    public RectTransform AbilityPanel;     // í˜ì´ë“œ
+    public RectTransform CharacterPanel;   // í˜ì´ë“œ
+    public RectTransform ToolPanel;        // í˜ì´ë“œ
+    public RectTransform WeaponPanel;      // í˜ì´ë“œ
+    public RectTransform BackButton;       // ì¢Œ â†’ ì¤‘ì‹¬
+    public GameObject background;          // ë°°ê²½ (ì• ë‹ˆë©”ì´ì…˜ ì—†ìŒ)
 
     [Header("Animation Settings")]
     public float duration = 0.5f;
-    public float offset = 300f;
+    public float stagger = 0.05f;          // ìš”ì†Œ ê°„ ì‹œì°¨
+    [Tooltip("í™”ë©´ ë°–ìœ¼ë¡œ ë‚˜ê°„ ë’¤ ì¶”ê°€ë¡œ ë” ë–¨ì–´ëœ¨ë¦´ ì—¬ìœ  ê±°ë¦¬")]
+    public float margin = 20f;
 
     private Vector2 titleOrigin;
-    private Vector2 AbilityOrigin;
-    private Vector2 CharacterOrigin;
-    private Vector2 ToolOrigin;
-    private Vector2 WeaponOrigin;
     private Vector2 backButtonOrigin;
 
-    private object tweenId = new object();
+    // ë“±ì¥ ì‹œ ê³„ì‚°í•œ í™”ë©´ ë°– ê±°ë¦¬ â€” í‡´ì¥ ë•Œ ì¬ì‚¬ìš©
+    private Vector2 titleOff;
+    private Vector2 backOff;
+
+    private CanvasGroup[] panelGroups;
+
+    private readonly object tweenId = new object();
 
     private void Awake()
     {
         titleOrigin = titleText != null ? titleText.anchoredPosition : Vector2.zero;
-        AbilityOrigin = AbilityPanel != null ? AbilityPanel.anchoredPosition : Vector2.zero;
-        CharacterOrigin = CharacterPanel != null ? CharacterPanel.anchoredPosition : Vector2.zero;
-        ToolOrigin = ToolPanel != null ? ToolPanel.anchoredPosition : Vector2.zero;
-        WeaponOrigin = WeaponPanel != null ? WeaponPanel.anchoredPosition : Vector2.zero;
         backButtonOrigin = BackButton != null ? BackButton.anchoredPosition : Vector2.zero;
+
+        panelGroups = new[]
+        {
+            GetGroup(AbilityPanel),
+            GetGroup(CharacterPanel),
+            GetGroup(ToolPanel),
+            GetGroup(WeaponPanel)
+        };
     }
 
     public override Tween EnterAnimation()
     {
-        // ÀÌÀü¿¡ °°Àº ID·Î »ı¼ºµÈ Æ®À© Á¦°Å
         DOTween.Kill(tweenId);
 
-        // ÃÊ±â À§Ä¡ ¼³Á¤
-        if (titleText != null) titleText.anchoredPosition = titleOrigin + new Vector2(0, offset);
-        //if (ExperimentPanel != null) ExperimentPanel.anchoredPosition = ExperimentOrigin + new Vector2(-offset, 0);
-        //if (WeaponnPanel != null) WeaponnPanel.anchoredPosition = WeaponOrigin + new Vector2(-offset, 0);
-        if (BackButton != null) BackButton.anchoredPosition = backButtonOrigin + new Vector2(offset, 0);
+        // ì›ìœ„ì¹˜ì— ë†“ê³  í™”ë©´ ë°– ê±°ë¦¬ ê³„ì‚° (ê¸°ê¸° í•´ìƒë„ì— ë§ì¶° ë§¤ë²ˆ ê³„ì‚°)
+        if (titleText != null) titleText.anchoredPosition = titleOrigin;
+        if (BackButton != null) BackButton.anchoredPosition = backButtonOrigin;
 
-        // ½ÃÄö½º ±¸¼º (ÁßÃ¸ ´ë½Å Insert·Î ¿ÀÇÁ¼Â Àû¿ëÇÏ¿© ¿ø·¡ Áö¿¬ ¹æ½Ä ÀçÇö)
+        titleOff = Offscreen(titleText, Vector2.up);
+        backOff = Offscreen(BackButton, Vector2.left);
+
+        // ì‹œì‘ ìƒíƒœ
+        if (titleText != null) titleText.anchoredPosition = titleOrigin + titleOff;
+        if (BackButton != null) BackButton.anchoredPosition = backButtonOrigin + backOff;
+        foreach (var g in panelGroups)
+            if (g != null) g.alpha = 0f;
+
         var seq = DOTween.Sequence().SetId(tweenId);
 
-        // Title ½ÃÀÛ
         if (titleText != null)
-            seq.Append(titleText.DOAnchorPos(titleOrigin, duration).SetEase(Ease.OutCubic));
-        else
-            seq.AppendInterval(duration);
+            seq.Insert(0f, titleText.DOAnchorPos(titleOrigin, duration).SetEase(Ease.OutCubic));
 
-        // BackButtonÀº ½ÃÄö½º ½ÃÀÛ ÈÄ 0.15ÃÊ¿¡ ½ÃÀÛ
+        // íŒ¨ë„ì€ ì°¨ë¡€ë¡œ í˜ì´ë“œ ì¸
+        float t = stagger;
+        foreach (var g in panelGroups)
+        {
+            if (g == null) continue;
+            seq.Insert(t, g.DOFade(1f, duration).SetEase(Ease.OutCubic));
+            t += stagger;
+        }
+
         if (BackButton != null)
-            seq.Insert(0.15f, BackButton.DOAnchorPos(backButtonOrigin, duration).SetEase(Ease.OutCubic));
+            seq.Insert(stagger * 2f, BackButton.DOAnchorPos(backButtonOrigin, duration).SetEase(Ease.OutCubic));
 
         return seq;
     }
 
     public override Tween ExitAnimation()
     {
-        // ÀÌÀü¿¡ °°Àº ID·Î »ı¼ºµÈ Æ®À© Á¦°Å
         DOTween.Kill(tweenId);
 
         float exitDur = duration * 0.8f;
-
-        // µ¿½Ã¿¡ ³ª°¡´Â ¾Ö´Ï¸ŞÀÌ¼ÇÀ» ½ÃÄö½º¿¡ º´·Ä·Î Ãß°¡
         var seq = DOTween.Sequence().SetId(tweenId);
-        bool anyAdded = false;
 
         if (titleText != null)
-        {
-            seq.Append(titleText.DOAnchorPos(titleOrigin + new Vector2(0, offset), exitDur).SetEase(Ease.InCubic));
-            anyAdded = true;
-        }
+            seq.Insert(0f, titleText.DOAnchorPos(titleOrigin + titleOff, exitDur).SetEase(Ease.InCubic));
+
+        foreach (var g in panelGroups)
+            if (g != null)
+                seq.Insert(0f, g.DOFade(0f, exitDur).SetEase(Ease.InCubic));
 
         if (BackButton != null)
-        {
-            if (!anyAdded)
-                seq.Append(BackButton.DOAnchorPos(backButtonOrigin + new Vector2(-offset, 0), exitDur).SetEase(Ease.InCubic));
-            else
-                seq.Join(BackButton.DOAnchorPos(backButtonOrigin + new Vector2(-offset, 0), exitDur).SetEase(Ease.InCubic));
-        }
+            seq.Insert(0f, BackButton.DOAnchorPos(backButtonOrigin + backOff, exitDur).SetEase(Ease.InCubic));
 
         return seq;
+    }
+
+    private CanvasGroup GetGroup(RectTransform panel)
+    {
+        if (panel == null) return null;
+
+        var group = panel.GetComponent<CanvasGroup>();
+        if (group == null) group = panel.gameObject.AddComponent<CanvasGroup>();
+        return group;
+    }
+
+    private Vector2 Offscreen(RectTransform rt, Vector2 dir)
+    {
+        return rt != null ? UIOffscreenUtil.GetOffscreenOffset(rt, dir, margin) : Vector2.zero;
     }
 }

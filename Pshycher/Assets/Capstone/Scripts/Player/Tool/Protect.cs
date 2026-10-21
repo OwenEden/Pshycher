@@ -3,18 +3,22 @@ using UnityEngine;
 public class Protect : MonoBehaviour
 {
     [Header("기본 설정")]
-    public float baseBlockDamageReduction = 0.8f; // 기본 80% 피해 감소
+    [Range(0f, 1f)] public float baseBlockDamageReduction = 0.8f;
     public float baseDuration = 2f;
     public float baseCooldown = 3f;
 
     [Header("강화 설정")]
-    public float enhancedBlockDamageReduction = 0.95f; // 강화 95% 피해 감소
+    [Range(0f, 1f)] public float enhancedBlockDamageReduction = 0.95f;
     public float enhancedDuration = 3f;
-    public bool enhancedReflect = true; // 강화 시 피해 반사 여부
+    public bool enhancedReflect = true;
+    [Range(0f, 1f)] public float reflectRatio = 0.3f;
+
+    [Header("방어 대상")]
+    [Tooltip("체크하면 익사 같은 지속 피해도 방어")]
+    public bool blockContinuousDamage = false;
 
     public bool isBlocking { get; private set; } = false;
 
-    private float cooldownTimer = 0f;
     private float durationTimer = 0f;
     private bool currentEnhanced = false;
 
@@ -29,72 +33,61 @@ public class Protect : MonoBehaviour
 
     void Update()
     {
-        if (cooldownTimer > 0f)
-            cooldownTimer -= Time.deltaTime;
+        if (!isBlocking) return;
 
-        if (isBlocking)
-        {
-            durationTimer -= Time.deltaTime;
-            if (durationTimer <= 0f)
-                EndBlock();
-        }
+        durationTimer -= Time.deltaTime;
+        if (durationTimer <= 0f)
+            EndBlock();
+    }
+
+    void OnDisable()
+    {
+        // 방어 중 도구를 바꾸면 즉시 종료하고 쿨타임 시작
+        if (isBlocking) EndBlock();
     }
 
     public void Activate(bool enhanced)
     {
-        if (cooldownTimer > 0f || isBlocking) return;
+        if (isBlocking) return;
+        if (toolManager.IsOnCooldown(ToolType.Protect)) return;
 
         currentEnhanced = enhanced;
         isBlocking = true;
         durationTimer = enhanced ? enhancedDuration : baseDuration;
-
-        Debug.Log($"프로텍트 발동 - 강화: {enhanced} / 지속: {durationTimer}초");
     }
 
-    // PlayerStat.OnDamage 대신 이 메서드로 피해 처리 (PlayerStat에서 연동 필요)
-    public float CalculateBlockedDamage(float incomingDamage, Vector2 attackDirection)
+    public float CalculateBlockedDamage(DamageInfo info)
     {
-        if (!isBlocking) return incomingDamage;
+        if (!isBlocking) return info.amount;
 
-        // 전방에서 오는 공격만 방어
-        Vector2 facing = stat.transform.localScale.x > 0 ? Vector2.right : Vector2.left;
-        float dot = Vector2.Dot(facing, attackDirection.normalized);
+        if (info.type == DamageType.Continuous && !blockContinuousDamage)
+            return info.amount;
 
-        if (dot <= 0) return incomingDamage; // 후방 공격은 방어 불가
+        if (!info.hasSource) return info.amount;
+        if (!stat.IsFromFront(info.sourcePosition)) return info.amount;
 
         float reduction = currentEnhanced ? enhancedBlockDamageReduction : baseBlockDamageReduction;
-        float blocked = incomingDamage * reduction;
-        float remaining = incomingDamage - blocked;
-
-        Debug.Log($"프로텍트 방어 - 원본: {incomingDamage} / 감소: {blocked} / 잔여: {remaining}");
+        float blocked = info.amount * reduction;
 
         if (currentEnhanced && enhancedReflect)
-            ReflectDamage(blocked * 0.3f, attackDirection);
+            Reflect(info, blocked * reflectRatio);
 
-        return remaining;
+        return info.amount - blocked;
     }
 
-    private void ReflectDamage(float damage, Vector2 attackDirection)
+    private void Reflect(DamageInfo info, float damage)
     {
-        // 공격 방향 역방향으로 레이캐스트해 반사 피해
-        RaycastHit2D hit = Physics2D.Raycast(
-            stat.transform.position,
-            -attackDirection,
-            3f
-        );
+        if (info.sourceObject == null || damage <= 0f) return;
 
-        if (hit.collider != null)
-        {
-            LivingEntity entity = hit.collider.GetComponent<LivingEntity>();
-            entity?.OnDamage(damage);
-            Debug.Log($"프로텍트 반사 - 대상: {hit.collider.name} / 데미지: {damage}");
-        }
+        LivingEntity target = info.sourceObject.GetComponent<LivingEntity>();
+        if (target == null || target.dead) return;
+
+        target.OnDamage(damage);
     }
 
     private void EndBlock()
     {
         isBlocking = false;
-        cooldownTimer = baseCooldown * toolManager.GetCooldownMultiplier();
-        Debug.Log("프로텍트 종료");
+        toolManager.StartCooldown(ToolType.Protect, baseCooldown);
     }
 }

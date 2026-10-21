@@ -18,9 +18,9 @@ public class StageTimer : MonoBehaviour
             elapsed += Time.deltaTime;   // timeScale 0이면 함께 정지
     }
 
-    public void StartTimer()
+    public void StartTimer(float from = 0f)
     {
-        elapsed = 0f;
+        elapsed = from;
         isRunning = true;
     }
 

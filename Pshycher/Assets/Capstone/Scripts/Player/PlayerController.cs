@@ -1,98 +1,281 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
     private float moveSpeed = 5f;
     private float jumpForce = 7f;
 
+    // â”€â”€ ìƒíƒœ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public bool isFacingRight { get; private set; } = true;
     public bool isSprinting { get; private set; }
     public bool isJumping { get; private set; }
     public bool isGrounded { get; private set; }
     public bool isClimbing { get; private set; }
-    public bool isOnLadder { get; private set; } = false; // Ladder.cs¿¡¼­ ÂüÁ¶
+    public bool isOnLadder { get; private set; } = false;
+    public bool isTurning { get; private set; }
+    public bool isInWind { get; private set; }
+    public bool isInWater { get; private set; }
+    public bool isSwimming { get; private set; }
+    public bool isSwimMoving { get; private set; }
 
-    [Header("Á¡ÇÁ ¼³Á¤")]
+    // ë•…Â·ì‚¬ë‹¤ë¦¬Â·ë¬¼ì—ì„œ ë²—ì–´ë‚  ë•Œë§ˆë‹¤ ì¦ê°€ â€” ê³µì¤‘ 1íšŒ ì œí•œ íŒì •ìš©
+    public int landingCount { get; private set; }
+
+    [Header("ì í”„ ì„¤ì •")]
     public int maxJumpCount = 2;
     private int jumpCountRemaining = 0;
 
-    [Header("»ç´Ù¸® ¼³Á¤")]
+    [Header("ì‚¬ë‹¤ë¦¬ ì„¤ì •")]
     public float climbSpeed = 3f;
-    private LadderTrigger currentLadder = null;
-    private float originalGravityScale; // ±âÁ¸ Áß·Â°ª ÀúÀå
+    public float ladderBottomRayDistance = 0.3f;
 
-    [Header("Áö¸é °¨Áö")]
+    [Header("í„´ì–´ë¼ìš´ë“œ ì„¤ì •")]
+    public float turnDuration = 0.15f;
+    [Range(0f, 1f)] public float turnMoveSpeedRate = 0.3f;
+
+    // [ê´€ì„±] â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    [Header("ê´€ì„± (ì‹¤í—˜)")]
+    public bool useInertia = true;
+    public float skidDuration = 0.25f;     // ë¯¸ë„ëŸ¬ì§€ëŠ” ì‹œê°„ (ì „ì²´ ë™ì•ˆ ë°©í–¥ì „í™˜ ëª¨ì…˜)
+    public float skidMinSpeed = 2f;        // ì´ ì†ë„ ì´ìƒìœ¼ë¡œ ë‹¬ë¦¬ë‹¤ êº¾ì„ ë•Œë§Œ ë¯¸ë„ëŸ¬ì§
+
+    public bool isSkidding { get; private set; }
+    private float skidTimer;
+    private float skidStartSpeed;
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+    // [ëŒ€ì‰¬] â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    [Header("ëŒ€ì‰¬")]
+    public AbilityType dashAbility = AbilityType.Plasma;
+    public float dashSpeed = 18f;
+    public float dashDuration = 0.15f;
+    public float dashCooldown = 0.5f;
+    public bool allowAirDash = true;
+    public bool invincibleWhileDashing = true;
+
+    public bool isDashing { get; private set; }
+    public bool isInvincible => isDashing && invincibleWhileDashing;
+
+    public bool IsDashAbilityActive =>
+        abilityManager != null && abilityManager.isAbilityActive
+        && abilityManager.currentAbility == dashAbility;
+
+    private float dashTimer;
+    private float dashDirection;
+    private float nextDashTime;
+    private int airDashLanding = -1;
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+    [Header("ìˆ˜ì˜ ëª¨ì…˜")]
+    public float swimStrokeAnimTime = 0.35f;
+
+    [Header("ì§€ë©´ ê°ì§€")]
     public Transform groundCheck;
     public float groundCheckRadius = 0.1f;
-    public LayerMask groundLayer;
-
-    [Header("»ç´Ù¸® ÇÏ´Ü °¨Áö")]
-    public float ladderBottomRayDistance = 0.3f; // ÂøÁö ¿¹Ãø °Å¸®
-
-    [Header("ÅÏ¾î¶ó¿îµå ¼³Á¤")]
-    public float turnDuration = 0.15f;      // ÅÏ Å¬¸³ ±æÀÌ¿Í ¸ÂÃçÁÖ¼¼¿ä
-    public bool useAnimationEvent = true;   // ¾Ö´Ï¸ŞÀÌ¼Ç ÀÌº¥Æ®·Î flip Å¸ÀÌ¹Ö Á¦¾î
-    [Range(0f, 1f)]
-    public float turnMoveSpeedRate = 0.3f;  // ÅÏ µµÁß ÀÌµ¿¼Óµµ ºñÀ²
-
-    public bool isTurning { get; private set; }
-
-    private bool pendingFacingRight;        // ÅÏ ¿Ï·á ÈÄ ¹Ù¶óº¼ ¹æÇâ
-    private float turnTimer;
-
+    public LayerMask groundLayer;          // ì¼ë°˜ ì§€ë©´ (Ground)
+    public LayerMask oneWayGroundLayer;    // ìœ„ì—ì„œë§Œ ë°ŸíˆëŠ” ë°œíŒ (LadderTop)
 
     private Rigidbody2D rb;
     private AbilityManager abilityManager;
+    private PlayerStat stat;
 
+    private LadderTrigger currentLadder = null;
+    private WindZone2D currentWind = null;
+    private WaterZone2D currentWater = null;
+
+    private float originalGravityScale;
+
+    private bool pendingFacingRight;
+    private float turnTimer;
+
+    private float waterDrainTimer;
+    private float drainTickTimer;
+
+    private bool canSwimFreely;
+    private bool verticalSwimControl;
+    private float swimStrokeTimer;
+
+    private bool IsHeavyInWater =>
+        isInWater && currentWater != null && currentWater.IsHeavy(abilityManager);
 
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
         abilityManager = GetComponent<AbilityManager>();
+        stat = GetComponent<PlayerStat>();
+        originalGravityScale = rb.gravityScale;
     }
 
     void FixedUpdate()
     {
         CheckGround();
+        CheckSwimInterrupt();
+        UpdateFreeSwim();
+        ApplyGravityScale();
 
-        if (isOnLadder)
-            ClimbMove();
-        else
-            Move();
+        if (PlayerUIManager.Instance.GetDash())   // [ëŒ€ì‰¬]
+            TryDash();
 
-        if (PlayerUIManager.Instance.GetJump())
-        {
-            if (isOnLadder)
-                ExitLadderByJump();
-            else
-                TryJump();
-        }
+        if (isDashing) UpdateDash();
+        else if (isOnLadder) ClimbMove();
+        else if (isSwimming) SwimMove();
+        else Move();
+
+        ApplyWind();
+        ApplyBuoyancy();
+        ApplyWaterDrain();
+
+        // ëŒ€ì‰¬ ì¤‘ ëˆ„ë¥¸ ì í”„ëŠ” ì†Œë¹„í•˜ì§€ ì•Šê³  ëŒ€ì‰¬ê°€ ëë‚œ ë’¤ ì²˜ë¦¬
+        if (!isDashing && PlayerUIManager.Instance.GetJump())
+            HandleJumpInput();
     }
 
-    // ¦¡¦¡ ÀÏ¹İ ÀÌµ¿ ¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡
+    // â”€â”€ ì í”„ ì…ë ¥ ë¶„ê¸° â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    private void HandleJumpInput()
+    {
+        if (isOnLadder)
+        {
+            ExitLadderByJump();
+            return;
+        }
+
+        if (isSwimming)
+        {
+            SwimStroke();
+            return;
+        }
+
+        // ë¬¼ì†ì—ì„œ ì² ê³ í™”ê°€ ì•„ë‹ˆë©´ ìˆ˜ì˜ ì‹œì‘
+        if (isInWater && currentWater != null && !IsHeavyInWater)
+        {
+            StartSwimming();
+            return;
+        }
+
+        TryJump();
+    }
+
+    // â”€â”€ ì¼ë°˜ ì´ë™ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     void Move()
     {
         float move = PlayerUIManager.Instance.GetMove();
         isSprinting = move != 0;
 
-        Vector2 velocity = rb.linearVelocity;
-        velocity.x = move * moveSpeed * (isTurning ? turnMoveSpeedRate : 1f);
-        rb.linearVelocity = velocity;
-
         HandleFlip(move);
+
+        if (isSkidding)   // [ê´€ì„±]
+        {
+            UpdateSkid();
+        }
+        else
+        {
+            float speedRate = isTurning ? turnMoveSpeedRate : 1f;
+            if (isInWater && stat != null)
+                speedRate *= stat.GetWaterSpeedMultiplier();
+
+            Vector2 velocity = rb.linearVelocity;
+            velocity.x = move * moveSpeed * speedRate;
+            rb.linearVelocity = velocity;
+        }
+
         UpdateTurnTimer();
     }
 
+    // â”€â”€ ìˆ˜ì˜ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    void SwimMove()
+    {
+        float move = PlayerUIManager.Instance.GetMove();
+        float vertical = PlayerUIManager.Instance.GetClimb();
+        isSprinting = move != 0;
 
-    // ¦¡¦¡ »ç´Ù¸® ÀÌµ¿ ¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡
+        float speedRate = stat != null ? stat.GetWaterSpeedMultiplier() : 1f;
+
+        Vector2 v = rb.linearVelocity;
+        v.x = move * moveSpeed * speedRate;
+
+        // ìˆ˜ì•¡í™”ì¼ ë•Œë§Œ ìƒí•˜ ì§ì ‘ ì œì–´ (ì´ë•ŒëŠ” ë¶€ë ¥ ë¯¸ì ìš©)
+        verticalSwimControl = canSwimFreely && vertical != 0f;
+        if (verticalSwimControl)
+            v.y = vertical * currentWater.swimVerticalSpeed * speedRate;
+
+        rb.linearVelocity = v;
+
+        HandleFlip(move);
+        UpdateTurnTimer();
+
+        if (swimStrokeTimer > 0f)
+            swimStrokeTimer -= Time.fixedDeltaTime;
+
+        isSwimMoving = move != 0f || verticalSwimControl || swimStrokeTimer > 0f;
+    }
+
+    private void SwimStroke()
+    {
+        if (currentWater == null) return;
+
+        // ëŠ¥ë ¥ ë³´ì • ì „ ê¸°ë³¸ ì í”„ë ¥ ê¸°ì¤€ â€” ìˆ˜ì˜ ë°°ìœ¨ë§Œ ì ìš©
+        float baseJump = stat != null ? stat.baseJumpForce : jumpForce;
+        float strokeVelocity = (baseJump / rb.mass) * currentWater.swimJumpMultiplier;
+
+        Vector2 v = rb.linearVelocity;
+        v.y = Mathf.Min(Mathf.Max(v.y, 0f) + strokeVelocity, currentWater.maxSwimRiseSpeed);
+        rb.linearVelocity = v;
+
+        swimStrokeTimer = swimStrokeAnimTime;
+    }
+
+    private void StartSwimming()
+    {
+        EndDash();
+        CancelSkid();
+
+        if (isSwimming) return;
+
+        isSwimming = true;
+        isJumping = false;
+
+        SwimStroke();   // ì§„ì…ê³¼ ë™ì‹œì— í•œ ë²ˆ ë– ì˜¤ë¦„
+    }
+
+    private void StopSwimming()
+    {
+        if (!isSwimming) return;
+
+        isSwimming = false;
+        canSwimFreely = false;
+        verticalSwimControl = false;
+        isSwimMoving = false;
+        PlayerUIManager.Instance?.RequestVerticalButtons(this, false);
+    }
+
+    // ìˆ˜ì˜ ì¤‘ + ìˆ˜ì•¡í™”ì¼ ë•Œë§Œ ìƒí•˜ ë²„íŠ¼ í‘œì‹œ
+    private void UpdateFreeSwim()
+    {
+        bool free = isSwimming && currentWater != null
+                 && currentWater.CanSwimFreely(abilityManager);
+
+        if (free == canSwimFreely) return;
+
+        canSwimFreely = free;
+        PlayerUIManager.Instance?.RequestVerticalButtons(this, free);
+    }
+
+    // ìˆ˜ì˜ ì¤‘ ë¬¼ì„ ë²—ì–´ë‚¬ê±°ë‚˜ ì² ê³ í™”ë¥¼ ì¼°ìœ¼ë©´ í•´ì œ
+    private void CheckSwimInterrupt()
+    {
+        if (!isSwimming) return;
+
+        if (currentWater == null || IsHeavyInWater)
+            StopSwimming();
+    }
+
+    // â”€â”€ ì‚¬ë‹¤ë¦¬ ì´ë™ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     void ClimbMove()
     {
         float climbInput = PlayerUIManager.Instance.GetClimb();
 
-        // »ç´Ù¸® Áß¾Ó X·Î °íÁ¤
         float centerX = currentLadder.centerX;
-        float currentX = transform.position.x;
-        float snapX = Mathf.Lerp(currentX, centerX, Time.fixedDeltaTime * 10f);
+        float snapX = Mathf.Lerp(transform.position.x, centerX, Time.fixedDeltaTime * 10f);
         transform.position = new Vector3(snapX, transform.position.y, transform.position.z);
 
         Vector2 velocity = Vector2.zero;
@@ -104,22 +287,122 @@ public class PlayerController : MonoBehaviour
         if (climbInput < 0f)
         {
             RaycastHit2D hit = Physics2D.Raycast(
-                groundCheck.position,
-                Vector2.down,
-                ladderBottomRayDistance,
-                groundLayer
-            );
+                groundCheck.position, Vector2.down, ladderBottomRayDistance, groundLayer);
 
             if (hit.collider != null)
             {
                 currentLadder?.SetButtonsActive(false);
                 OnExitLadder();
-                Debug.Log("»ç´Ù¸® ÇÏ´Ü °¨Áö - Climb ÇØÁ¦");
             }
         }
     }
 
-    // ¦¡¦¡ Á¡ÇÁ ¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡
+    // â”€â”€ ì¤‘ë ¥ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    private void ApplyGravityScale()
+    {
+        if (isDashing) { rb.gravityScale = 0f; return; }   // [ëŒ€ì‰¬]
+        if (isOnLadder) { rb.gravityScale = 0f; return; }
+
+        if (isInWater && currentWater != null)
+        {
+            rb.gravityScale = 0f;   // ë¬¼ì†ì—ì„œëŠ” ë¶€ë ¥ì´ ì„¸ë¡œ ì›€ì§ì„ì„ ë‹´ë‹¹
+            return;
+        }
+
+        rb.gravityScale = originalGravityScale;
+    }
+
+    // â”€â”€ êµ¬ì—­ íš¨ê³¼ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    private void ApplyWind()
+    {
+        if (isDashing) return;   // [ëŒ€ì‰¬]
+        if (!isInWind || currentWind == null || isOnLadder) return;
+        if (currentWind.IsImmune(abilityManager)) return;
+
+        rb.linearVelocity += currentWind.GetWindVelocity() * Time.fixedDeltaTime;
+    }
+
+    private void ApplyBuoyancy()
+    {
+        if (!isInWater || currentWater == null) return;
+        if (isOnLadder || isDashing) return;
+        if (verticalSwimControl) return;   // ì§ì ‘ ìƒí•˜ë¡œ í—¤ì—„ì¹˜ëŠ” ì¤‘
+
+        float target = -currentWater.GetSinkSpeed(abilityManager);
+        Vector2 v = rb.linearVelocity;
+
+        // ëª©í‘œë³´ë‹¤ ìœ„ë¡œ ê°€ëŠ” ì¤‘ì´ë©´ ë¶€ë ¥ì´ ëŒì–´ë‚´ë¦¬ê³ , ë” ë¹¨ë¦¬ ë–¨ì–´ì§€ëŠ” ì¤‘ì´ë©´ ì €í•­ì´ ëŠ¦ì¶¤
+        float rate = v.y > target ? currentWater.riseDeceleration : currentWater.fallDrag;
+
+        v.y = Mathf.MoveTowards(v.y, target, rate * Time.fixedDeltaTime);
+        rb.linearVelocity = v;
+    }
+
+    private void ApplyWaterDrain()
+    {
+        if (!isInWater || currentWater == null) return;
+        if (stat == null || stat.dead) return;
+
+        if (currentWater.IsDrainImmune(abilityManager))
+        {
+            waterDrainTimer = 0f;
+            drainTickTimer = 0f;
+            return;
+        }
+
+        waterDrainTimer += Time.fixedDeltaTime;
+        if (waterDrainTimer < currentWater.drainStartDelay) return;
+
+        drainTickTimer -= Time.fixedDeltaTime;
+        if (drainTickTimer <= 0f)
+        {
+            stat.ApplyEnvironmentDamage(currentWater.drainAmount);
+            drainTickTimer = Mathf.Max(0.01f, currentWater.drainInterval);
+        }
+    }
+
+    public void EnterWindZone(WindZone2D zone)
+    {
+        currentWind = zone;
+        isInWind = true;
+    }
+
+    public void ExitWindZone(WindZone2D zone)
+    {
+        if (currentWind != zone) return;
+        currentWind = null;
+        isInWind = false;
+    }
+
+    public void EnterWaterZone(WaterZone2D zone)
+    {
+        currentWater = zone;
+        isInWater = true;
+        waterDrainTimer = 0f;
+        drainTickTimer = 0f;
+    }
+
+    public void ExitWaterZone(WaterZone2D zone)
+    {
+        if (currentWater != zone) return;
+
+        landingCount++;
+
+        bool wasSwimming = isSwimming;
+        StopSwimming();
+
+        currentWater = null;
+        isInWater = false;
+        rb.gravityScale = originalGravityScale;
+        waterDrainTimer = 0f;
+        drainTickTimer = 0f;
+
+        // í—¤ì—„ì³ì„œ ë¬¼ ë°–ìœ¼ë¡œ ë‚˜ì˜¤ë©´ ê³µì¤‘ ì í”„ë¥¼ ë‚¨ê²¨ë‘ 
+        if (wasSwimming && !isGrounded)
+            jumpCountRemaining = Mathf.Max(0, maxJumpCount - 1);
+    }
+
+    // â”€â”€ ì í”„ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     void TryJump()
     {
         if (jumpCountRemaining <= 0) return;
@@ -135,30 +418,30 @@ public class PlayerController : MonoBehaviour
         }
 
         rb.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
-        Debug.Log($"Á¡ÇÁ - ³²Àº È½¼ö: {jumpCountRemaining}");
     }
 
-    // ¦¡¦¡ »ç´Ù¸® ÁøÀÔ/ÀÌÅ» ¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡
+    // â”€â”€ ì‚¬ë‹¤ë¦¬ ì§„ì…/ì´íƒˆ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     public void OnEnterLadder(LadderTrigger ladder)
     {
+        EndDash();
+        CancelSkid();
+        landingCount++;
+        StopSwimming();
+
         isOnLadder = true;
         currentLadder = ladder;
-        originalGravityScale = rb.gravityScale; // ÁøÀÔ ½Ã ÀúÀå
-        rb.gravityScale = 0f;
         rb.linearVelocity = Vector2.zero;
         isClimbing = false;
-        Debug.Log($"»ç´Ù¸® µî¹İ ½ÃÀÛ - ±âÁ¸ Áß·Â°ª ÀúÀå: {originalGravityScale}");
     }
 
     public void OnExitLadder()
     {
         isOnLadder = false;
-        rb.gravityScale = originalGravityScale; // ÀúÀåµÈ °ªÀ¸·Î º¹±¸
         isClimbing = false;
         currentLadder?.SetCollisionWithLadderTop(true);
         currentLadder = null;
-        Debug.Log($"»ç´Ù¸® ÀÌÅ» - Áß·Â°ª º¹±¸: {originalGravityScale}");
     }
+
     private void ExitLadderByJump()
     {
         LadderTrigger ladder = currentLadder;
@@ -166,75 +449,56 @@ public class PlayerController : MonoBehaviour
         ladder?.SetButtonsActive(false);
         ResetJumpCount();
         TryJump();
-        Debug.Log("»ç´Ù¸®¿¡¼­ Á¡ÇÁ ÀÌÅ»");
     }
 
-    // ¦¡¦¡ °øÅë ¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡¦¡
-    void CheckGround()
-    {
-        bool wasGrounded = isGrounded;
-
-        if (groundCheck != null)
-            isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
-
-        if (!wasGrounded && isGrounded)
-        {
-            isJumping = false;
-            ResetJumpCount();
-
-            // ÂøÁö ½Ã »ç´Ù¸® ÀÌÅ»
-            if (isOnLadder)
-                OnExitLadder();
-        }
-    }
-
+    // â”€â”€ ë°©í–¥ ì „í™˜ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     void HandleFlip(float x)
     {
         if (x == 0) return;
 
         bool wantRight = x > 0;
-        if (wantRight == isFacingRight) return;   // ¹æÇâ ±×´ë·Î¸é ¹«½Ã
-        if (isTurning && wantRight == pendingFacingRight) return; // ÀÌ¹Ì °°Àº ¹æÇâÀ¸·Î ÅÏ Áß
+        if (wantRight == isFacingRight) return;
+        if (isTurning && wantRight == pendingFacingRight) return;
 
-        // °øÁßÀÌ°Å³ª »ç´Ù¸® À§¿¡¼­´Â ÅÏ ¾øÀÌ Áï½Ã ÀüÈ¯
-        if (!isGrounded || isOnLadder)
+        if (!isGrounded || isOnLadder || isSwimming)
         {
             ApplyFlip(wantRight);
             return;
         }
 
-        StartTurn(wantRight);
+        // [ê´€ì„±] ë¹ ë¥´ê²Œ ë‹¬ë¦¬ë‹¤ ë°˜ëŒ€ë¡œ êº¾ìœ¼ë©´ ë¯¸ë„ëŸ¬ì§
+        if (useInertia && Mathf.Abs(rb.linearVelocity.x) >= skidMinSpeed)
+        {
+            StartSkid(wantRight);
+            return;
+        }
+
+        StartTurn(wantRight, turnDuration);
     }
 
-    private void StartTurn(bool faceRight)
+    private void StartTurn(bool faceRight, float duration)
     {
         isTurning = true;
         pendingFacingRight = faceRight;
-        turnTimer = turnDuration;
-
-        // ¾Ö´Ï¸ŞÀÌ¼Ç ÀÌº¥Æ®¸¦ ¾²Áö ¾ÊÀ¸¸é Å¸ÀÌ¸Ó Á¾·á ½ÃÁ¡¿¡ flip
-        Debug.Log($"ÅÏ¾î¶ó¿îµå ½ÃÀÛ ¡æ {(faceRight ? "¿À¸¥ÂÊ" : "¿ŞÂÊ")}");
+        turnTimer = duration;
     }
 
     private void UpdateTurnTimer()
     {
-        if (!isTurning) return;
+        if (!isTurning || isSkidding) return;   // ë¯¸ë„ëŸ¬ì§€ëŠ” ì¤‘ì—” UpdateSkidê°€ ê´€ë¦¬
 
         turnTimer -= Time.fixedDeltaTime;
         if (turnTimer > 0f) return;
 
-        // ¾Ö´Ï¸ŞÀÌ¼Ç ÀÌº¥Æ®¸¦ ¾²´Â °æ¿ì ÀÌ¹Ì flip µÆÀ» ¼ö ÀÖÀ½
-        if (!useAnimationEvent)
-            ApplyFlip(pendingFacingRight);
-
-        isTurning = false;
+        FinishTurn();
     }
 
-    // ¾Ö´Ï¸ŞÀÌ¼Ç ÀÌº¥Æ®¿¡¼­ È£Ãâ (PlayerAnimator °æÀ¯)
-    public void OnTurnFlipFrame()
+    // ë°©í–¥ì „í™˜ ëª¨ì…˜ ì¢…ë£Œì™€ ë™ì‹œì— ì‹¤ì œë¡œ ë’¤ì§‘ê¸°
+    private void FinishTurn()
     {
         if (!isTurning) return;
         ApplyFlip(pendingFacingRight);
+        isTurning = false;
     }
 
     private void ApplyFlip(bool faceRight)
@@ -243,6 +507,145 @@ public class PlayerController : MonoBehaviour
         Vector3 scale = transform.localScale;
         scale.x = faceRight ? Mathf.Abs(scale.x) : -Mathf.Abs(scale.x);
         transform.localScale = scale;
+    }
+
+    // ì™¸ë¶€ì—ì„œ ì‹œì‘ ë°©í–¥ ì§€ì •
+    public void SetFacing(bool faceRight)
+    {
+        CancelSkid();
+        isTurning = false;
+        ApplyFlip(faceRight);
+    }
+
+    // [ê´€ì„±] â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    private void StartSkid(bool faceRight)
+    {
+        isSkidding = true;
+        skidTimer = 0f;
+        skidStartSpeed = rb.linearVelocity.x;
+
+        StartTurn(faceRight, skidDuration);   // ë¯¸ë„ëŸ¬ì§€ëŠ” ë™ì•ˆ ë‚´ë‚´ ë°©í–¥ì „í™˜ ëª¨ì…˜
+    }
+
+    private void UpdateSkid()
+    {
+        skidTimer += Time.fixedDeltaTime;
+        float t = Mathf.Clamp01(skidTimer / skidDuration);
+
+        Vector2 v = rb.linearVelocity;
+        v.x = Mathf.Lerp(skidStartSpeed, 0f, t);
+        rb.linearVelocity = v;
+
+        // ë‹¤ ë¯¸ë„ëŸ¬ì¡Œê±°ë‚˜ ì í”„ ë“±ìœ¼ë¡œ ë•…ì„ ë– ë‚˜ë©´ ê·¸ ìë¦¬ì—ì„œ ë°©í–¥ì „í™˜ ì™„ë£Œ
+        if (t >= 1f || !isGrounded)
+        {
+            isSkidding = false;
+            FinishTurn();
+        }
+    }
+
+    private void CancelSkid() => isSkidding = false;
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+    // [ëŒ€ì‰¬] â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    private void TryDash()
+    {
+        if (isDashing || !IsDashAbilityActive) return;
+        if (isOnLadder || isSwimming) return;
+        if (Time.time < nextDashTime) return;
+
+        if (!isGrounded)
+        {
+            if (!allowAirDash || airDashLanding == landingCount) return;
+            airDashLanding = landingCount;
+        }
+
+        // ë°©í–¥ì „í™˜Â·ë¯¸ë„ëŸ¬ì§ ì¤‘ì´ë©´ ë§ˆë¬´ë¦¬í•˜ê³  ìƒˆë¡œ ë°”ë¼ë³´ëŠ” ìª½ìœ¼ë¡œ
+        CancelSkid();
+        FinishTurn();
+
+        isDashing = true;
+        dashTimer = dashDuration;
+        dashDirection = isFacingRight ? 1f : -1f;
+        nextDashTime = Time.time + dashDuration + dashCooldown;
+
+        rb.gravityScale = 0f;
+        rb.linearVelocity = new Vector2(dashDirection * dashSpeed, 0f);
+    }
+
+    private void UpdateDash()
+    {
+        dashTimer -= Time.fixedDeltaTime;
+        rb.linearVelocity = new Vector2(dashDirection * dashSpeed, 0f);
+
+        if (dashTimer <= 0f)
+            EndDash();
+    }
+
+    private void EndDash()
+    {
+        if (!isDashing) return;
+        isDashing = false;
+
+        // ëŒ€ì‰¬ ì†ë„ê°€ ì´ì–´ì§€ì§€ ì•Šê²Œ ì •ë¦¬ â€” ë‹¤ìŒ í”„ë ˆì„ì— Moveê°€ ì…ë ¥ëŒ€ë¡œ ë‹¤ì‹œ ì„¤ì •
+        Vector2 v = rb.linearVelocity;
+        v.x = 0f;
+        rb.linearVelocity = v;
+    }
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+    // â”€â”€ ì‚¬ë§ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    public void OnDeath()
+    {
+        EndDash();
+        CancelSkid();
+
+        if (isOnLadder)
+        {
+            currentLadder?.SetButtonsActive(false);
+            OnExitLadder();
+        }
+        StopSwimming();
+
+        isTurning = false;
+        isSprinting = false;
+
+        // ì‚¬ë‹¤ë¦¬ ìœ„ì—ì„œ ì£½ì–´ë„ ë°”ë‹¥ìœ¼ë¡œ ë–¨ì–´ì§€ë„ë¡ ì¤‘ë ¥ ë³µêµ¬
+        ApplyGravityScale();
+
+        Vector2 v = rb.linearVelocity;
+        v.x = 0f;
+        rb.linearVelocity = v;
+
+        enabled = false;
+    }
+
+    // â”€â”€ ì§€ë©´ / ìŠ¤íƒ¯ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    void CheckGround()
+    {
+        bool wasGrounded = isGrounded;
+
+        if (groundCheck != null)
+        {
+            bool onGround = Physics2D.OverlapCircle(
+                groundCheck.position, groundCheckRadius, groundLayer);
+
+            // ì‚¬ë‹¤ë¦¬ë¥¼ íƒ€ëŠ” ì¤‘ì´ ì•„ë‹ˆê³ , ì˜¬ë¼ê°€ëŠ” ì¤‘ì´ ì•„ë‹ ë•Œë§Œ ë°œíŒì„ ì§€ë©´ìœ¼ë¡œ ì¸ì •
+            bool onPlatform = !isOnLadder
+                && rb.linearVelocity.y <= 0.01f
+                && Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, oneWayGroundLayer);
+
+            isGrounded = onGround || onPlatform;
+        }
+
+        if (!wasGrounded && isGrounded)
+        {
+            isJumping = false;
+            ResetJumpCount();
+            landingCount++;
+
+            if (isOnLadder) OnExitLadder();
+        }
     }
 
     public void OnStatUpdated(float newMoveSpeed, float newJumpForce)
@@ -255,29 +658,10 @@ public class PlayerController : MonoBehaviour
     {
         maxJumpCount = count;
         jumpCountRemaining = Mathf.Min(jumpCountRemaining, maxJumpCount);
-        Debug.Log($"ÃÖ´ë Á¡ÇÁ È½¼ö º¯°æ: {maxJumpCount}");
     }
 
     public void ResetJumpCount()
     {
         jumpCountRemaining = maxJumpCount;
-    }
-
-    private void OnCollisionEnter2D(Collision2D collision)
-    {
-        if (((1 << collision.gameObject.layer) & groundLayer) != 0)
-        {
-            isJumping = false;
-            ResetJumpCount();
-        }
-    }
-
-    void OnDrawGizmosSelected()
-    {
-        if (groundCheck != null)
-        {
-            Gizmos.color = Color.yellow;
-            Gizmos.DrawWireSphere(groundCheck.position, groundCheckRadius);
-        }
     }
 }

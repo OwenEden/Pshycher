@@ -99,8 +99,6 @@ public class LadderManager : MonoBehaviour
 
         // LadderTrigger 컴포넌트 추가
         LadderTrigger ladder = obj.AddComponent<LadderTrigger>();
-        ladder.upButton = upButton;
-        ladder.downButton = downButton;
         ladder.playerLayerName = playerLayerName;
         ladder.ladderTopLayerName = ladderTopLayerName;
 

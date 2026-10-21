@@ -7,7 +7,7 @@ AnimationClip:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Player_Buster_Attack
-  serializedVersion: 7
+  serializedVersion: 8
   m_Legacy: 0
   m_Compressed: 0
   m_UseHighQualityCurve: 1
@@ -21,11 +21,11 @@ AnimationClip:
   - serializedVersion: 2
     curve:
     - time: 0
-      value: {fileID: -3164585132942971074, guid: 69e54329dc9ae6a48b2368ea06f2e889, type: 3}
+      value: {fileID: 2106060766076399514, guid: 74b5bcbbe509acc40a1def6340a6be6b, type: 3}
     - time: 0.11666667
       value: {fileID: -4821071496750289202, guid: 64c3cb35a821c2b4e88ffc9c49b9d202, type: 3}
     - time: 0.23333333
-      value: {fileID: 2106060766076399514, guid: 74b5bcbbe509acc40a1def6340a6be6b, type: 3}
+      value: {fileID: -3164585132942971074, guid: 69e54329dc9ae6a48b2368ea06f2e889, type: 3}
     attribute: m_Sprite
     path: 
     classID: 212
@@ -47,10 +47,11 @@ AnimationClip:
       isPPtrCurve: 1
       isIntCurve: 0
       isSerializeReferenceCurve: 0
+      metaData: 0
     pptrCurveMapping:
-    - {fileID: -3164585132942971074, guid: 69e54329dc9ae6a48b2368ea06f2e889, type: 3}
-    - {fileID: -4821071496750289202, guid: 64c3cb35a821c2b4e88ffc9c49b9d202, type: 3}
     - {fileID: 2106060766076399514, guid: 74b5bcbbe509acc40a1def6340a6be6b, type: 3}
+    - {fileID: -4821071496750289202, guid: 64c3cb35a821c2b4e88ffc9c49b9d202, type: 3}
+    - {fileID: -3164585132942971074, guid: 69e54329dc9ae6a48b2368ea06f2e889, type: 3}
   m_AnimationClipSettings:
     serializedVersion: 2
     m_AdditiveReferencePoseClip: {fileID: 0}
